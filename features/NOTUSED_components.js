@@ -137,8 +137,9 @@ export const NotificationProvider = ({ children }) => {
    const authContextPath = path.join(contextDirectory, "AuthContext.js");
    const authContextContent = `
 // AuthContext.js
+// src/context/AuthContext.js
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth, db } from '../firebase-config'; // Adjust the path accordingly
+import { auth, db } from '../firebase-config'; // Ensure correct path
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -150,130 +151,359 @@ import {
   signInWithPopup,
   updateProfile,
   sendEmailVerification as firebaseSendEmailVerification,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  reauthenticateWithPopup,
+  deleteUser,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  getDoc,
+  onSnapshot,
+  deleteDoc,
+  updateDoc,
+} from 'firebase/firestore';
 
+// Create Auth Context
 const AuthContext = createContext();
 
+// Custom Hook to use Auth Context
 export function useAuth() {
   return useContext(AuthContext);
 }
 
+// AuthProvider Component
 export function AuthProvider({ children }) {
+  // State Variables
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Login with email and password
+  // Authentication Functions
+
+  /**
+   * Log in a user with email and password.
+   * @param {string} email
+   * @param {string} password
+   * @returns {Promise<firebase.auth.UserCredential>}
+   */
   const login = async (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      return userCredential;
+    } catch (error) {
+      console.error('Login Error:', error);
+      throw error;
+    }
   };
 
-  // Signup with email and password
+  /**
+   * Sign up a new user with email, password, and username.
+   * @param {string} email
+   * @param {string} password
+   * @param {string} username
+   * @returns {Promise<firebase.auth.UserCredential>}
+   */
   const signup = async (email, password, username) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-    // Update profile with username
-    await updateProfile(user, { displayName: username });
+      // Update profile with username
+      await updateProfile(user, { displayName: username });
 
-    // Send email verification
-    await firebaseSendEmailVerification(user);
+      // Send email verification
+      await firebaseSendEmailVerification(user);
 
-    // Add user data to Firestore
-    await setDoc(doc(db, 'users', user.uid), {
-      email: email,
-      username: username,
-    });
+      // Add user data to Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        email,
+        username,
+        createdAt: new Date(),
+      });
 
-    // Sign out the user after signup to prevent unverified access
-    await signOut(auth);
+      // Optionally sign out the user to prevent unverified access
+      await signOut(auth);
 
-    return userCredential;
+      return userCredential;
+    } catch (error) {
+      console.error('Signup Error:', error);
+      throw error;
+    }
   };
 
-  // Logout
-  const logout = () => {
-    return signOut(auth);
+  /**
+   * Log out the current user.
+   * @returns {Promise<void>}
+   */
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Logout Error:', error);
+      throw error;
+    }
   };
 
-  // Reset password
-  const resetPassword = (email) => {
-    return sendPasswordResetEmail(auth, email);
+  /**
+   * Reset password for a given email.
+   * @param {string} email
+   * @returns {Promise<void>}
+   */
+  const resetPassword = async (email) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      console.error('Reset Password Error:', error);
+      throw error;
+    }
   };
 
-  // Login with Google
+  /**
+   * Log in with Google provider.
+   * @returns {Promise<void>}
+   */
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-    // Check if user data exists in Firestore
-    const userDocRef = doc(db, 'users', user.uid);
-    const userDocSnap = await getDoc(userDocRef);
-    if (!userDocSnap.exists()) {
-      // User data doesn't exist, create it
-      await setDoc(userDocRef, {
-        email: user.email,
-        username: user.displayName || '',
-      });
+      // Check if user data exists in Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (!userDocSnap.exists()) {
+        // Create user data
+        await setDoc(userDocRef, {
+          email: user.email,
+          username: user.displayName || '',
+          createdAt: new Date(),
+        });
+      }
+    } catch (error) {
+      console.error('Google Login Error:', error);
+      throw error;
     }
   };
 
-  // Login with Apple
+  /**
+   * Log in with Apple provider.
+   * @returns {Promise<void>}
+   */
   const loginWithApple = async () => {
     const provider = new OAuthProvider('apple.com');
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-    // Check if user data exists in Firestore
-    const userDocRef = doc(db, 'users', user.uid);
-    const userDocSnap = await getDoc(userDocRef);
-    if (!userDocSnap.exists()) {
-      // User data doesn't exist, create it
-      await setDoc(userDocRef, {
-        email: user.email,
-        username: user.displayName || '',
-      });
+      // Check if user data exists in Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (!userDocSnap.exists()) {
+        // Create user data
+        await setDoc(userDocRef, {
+          email: user.email,
+          username: user.displayName || '',
+          createdAt: new Date(),
+        });
+      }
+    } catch (error) {
+      console.error('Apple Login Error:', error);
+      throw error;
     }
   };
 
-  // Update user data in Firestore
-  const updateUserData = async (data) => {
-    if (!currentUser) return;
+  // User Data Management Functions
 
-    const userDocRef = doc(db, 'users', currentUser.uid);
-    await setDoc(userDocRef, data, { merge: true });
-    // Update the userData state
-    setUserData((prevData) => ({
-      ...prevData,
-      ...data,
-    }));
+  /**
+   * Fetch user data from Firestore.
+   * @param {string} uid
+   * @returns {Promise<Object>}
+   */
+  const fetchUserData = async (uid) => {
+    try {
+      const userDocRef = doc(db, 'users', uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        return userDocSnap.data();
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('Fetch User Data Error:', error);
+      throw error;
+    }
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user || null);
-      if (user) {
-        // User is signed in, fetch user data from Firestore
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          setUserData(userDocSnap.data());
-        } else {
-          // No user data found, set userData to null
-          setUserData(null);
+  /**
+   * Update user data in Firestore.
+   * @param {Object} data - Fields to update
+   * @returns {Promise<void>}
+   */
+  const updateUserData = async (data) => {
+    if (!currentUser) throw new Error('No user is currently signed in.');
+    try {
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userDocRef, data);
+      // Update local state
+      setUserData((prevData) => ({
+        ...prevData,
+        ...data,
+      }));
+    } catch (error) {
+      console.error('Update User Data Error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Delete user data from Firestore.
+   * @returns {Promise<void>}
+   */
+  const deleteUserData = async () => {
+    if (!currentUser) throw new Error('No user is currently signed in.');
+    try {
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await deleteDoc(userDocRef);
+    } catch (error) {
+      console.error('Delete User Data Error:', error);
+      throw error;
+    }
+  };
+
+  // Reauthentication Functions
+
+  /**
+   * Reauthenticate user with email and password.
+   * @param {string} email
+   * @param {string} password
+   * @returns {Promise<void>}
+   */
+  const reauthenticateWithEmail = async (email, password) => {
+    if (!currentUser) throw new Error('No user is currently signed in.');
+    try {
+      const credential = EmailAuthProvider.credential(email, password);
+      await reauthenticateWithCredential(currentUser, credential);
+    } catch (error) {
+      console.error('Reauthentication Error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Reauthenticate user with Google provider.
+   * @returns {Promise<void>}
+   */
+  const reauthenticateWithGoogle = async () => {
+    if (!currentUser) throw new Error('No user is currently signed in.');
+    const provider = new GoogleAuthProvider();
+    try {
+      await reauthenticateWithPopup(currentUser, provider);
+    } catch (error) {
+      console.error('Reauthentication with Google Error:', error);
+      throw error;
+    }
+  };
+
+  // Account Deletion Functions
+
+  /**
+   * Delete Firebase Auth user (requires reauthentication).
+   * @returns {Promise<void>}
+   */
+  const deleteFirebaseAccount = async () => {
+    if (!currentUser) throw new Error('No user is currently signed in.');
+    try {
+      await deleteUser(currentUser);
+    } catch (error) {
+      console.error('Delete Firebase Account Error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Centralized function to delete user account and data.
+   * Handles reauthentication based on the user's sign-in provider.
+   * @param {string} [password] - Required if using Email/Password provider.
+   * @returns {Promise<void>}
+   */
+  const deleteAccount = async (password = null) => {
+    if (!currentUser) throw new Error('No user is currently signed in.');
+
+    // Determine sign-in provider
+    const providerData = currentUser.providerData;
+    if (providerData.length === 0) {
+      throw new Error('No provider data available.');
+    }
+
+    const providerId = providerData[0].providerId;
+
+    try {
+      // Reauthenticate based on provider
+      if (providerId === 'google.com') {
+        await reauthenticateWithGoogle();
+      } else if (providerId === 'password') {
+        if (!password) {
+          throw new Error('Password is required for reauthentication.');
         }
+        await reauthenticateWithEmail(currentUser.email, password);
+      } else {
+        throw new Error('Unsupported provider');
+      }
+
+      // Delete user data from Firestore
+      await deleteUserData();
+
+      // Delete Firebase Auth user
+      await deleteFirebaseAccount();
+    } catch (error) {
+      console.error('Delete Account Error:', error);
+      throw error;
+    }
+  };
+
+  // Effect to handle auth state changes and set up Firestore listener
+  useEffect(() => {
+    let unsubscribeUserData = () => {};
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user || null);
+
+      if (user) {
+        // User is signed in, set up real-time listener for user data
+        const userDocRef = doc(db, 'users', user.uid);
+        unsubscribeUserData = onSnapshot(
+          userDocRef,
+          (docSnap) => {
+            if (docSnap.exists()) {
+              setUserData(docSnap.data());
+            } else {
+              setUserData(null);
+            }
+            setLoading(false);
+          },
+          (error) => {
+            console.error('Error fetching user data:', error);
+            setUserData(null);
+            setLoading(false);
+          }
+        );
       } else {
         // User is signed out
         setUserData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return unsubscribe;
+    // Cleanup subscriptions on unmount
+    return () => {
+      unsubscribeAuth();
+      unsubscribeUserData();
+    };
   }, []);
 
+  // Context Value
   const value = {
     currentUser,
     userData,
@@ -283,11 +513,19 @@ export function AuthProvider({ children }) {
     resetPassword,
     loginWithGoogle,
     loginWithApple,
+    fetchUserData, // Fetch user data manually if needed
     updateUserData,
+    deleteUserData,
+    reauthenticateWithEmail,
+    reauthenticateWithGoogle,
+    deleteFirebaseAccount,
+    deleteAccount, // Centralized delete account function
   };
 
+  // Provide Context to Children
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 }
+
    `;
    fs.writeFileSync(authContextPath, authContextContent.trim());
    console.log(`Created: ${authContextPath}`);

@@ -34,11 +34,6 @@ const { askQuestion, executeCommand } = require("./utils");
   const firebaseAnswer = await askQuestion("Do you want to add Firebase? (yes/no): ");
   const addFirebase = firebaseAnswer.toLowerCase().startsWith("y");
 
-  const componentsAnswer = await askQuestion(
-    "Do you want to add template components (Login and Home)? (yes/no): "
-  );
-  const addComponents = componentsAnswer.toLowerCase().startsWith("y");
-
   const gitHubAnswer = await askQuestion(
     "Do you want to set up GitHub integration? (yes/no): "
   );
@@ -113,10 +108,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
   if (addFirebase) {
     executeCommand(`node firebase.js "${appDirectory}"`, { cwd: featureScriptsDir });
-  }
-
-  if (addComponents) {
-    executeCommand(`node components.js "${appDirectory}"`, { cwd: featureScriptsDir });
   }
 
   if (addGitHub) {
