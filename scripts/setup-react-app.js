@@ -13,7 +13,7 @@ const { askQuestion, executeCommand } = require("./utils");
     process.exit(1);
   }
 
-  const allProjectsDir = path.join(process.cwd(), "../all_projects");
+  const allProjectsDir = path.join(process.cwd(), "../../all_projects");
   const appDirectory = path.join(allProjectsDir, projectName);
 
   // Check if the project directory already exists
@@ -48,54 +48,26 @@ const { askQuestion, executeCommand } = require("./utils");
 
   executeCommand(`npx create-react-app ${projectName}`, { cwd: allProjectsDir });
 
-  // Remove unwanted files
-  const filesToDelete = [
-    "src/App.css",
-    "src/App.test.js",
-    "src/logo.svg",
-    "src/reportWebVitals.js",
-    "src/setupTests.js",
-    "src/App.js",
-  ];
-  filesToDelete.forEach((file) => {
-    const filePath = path.join(appDirectory, file);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      console.log(`Deleted: ${filePath}`);
-    }
-  });
+  // Step 2: Replace the src folder with the template src
+  console.log("\n--- Replacing the src folder with template src ---");
+  const templateSrc = path.join(__dirname, "../template/src");
+  const projectSrc = path.join(appDirectory, "src");
 
-  // Create directories
-  const routesDirectory = path.join(appDirectory, "src", "routes");
-  if (!fs.existsSync(routesDirectory)) {
-    fs.mkdirSync(routesDirectory);
-    console.log(`Created directory: ${routesDirectory}`);
-  }
-  const componentsDirectory = path.join(appDirectory, "src", "components");
-  if (!fs.existsSync(componentsDirectory)) {
-    fs.mkdirSync(componentsDirectory);
-    console.log(`Created directory: ${componentsDirectory}`);
-  }
-  const assetsDirectory = path.join(appDirectory, "src", "assets");
-  if (!fs.existsSync(assetsDirectory)) {
-    fs.mkdirSync(assetsDirectory);
-    console.log(`Created directory: ${assetsDirectory}`);
+  // Check if template src exists
+  if (!fs.existsSync(templateSrc)) {
+    console.error(`Template src folder does not exist at ${templateSrc}`);
+    process.exit(1);
   }
 
-  // Modify `index.js`
-  const indexJsPath = path.join(appDirectory, "src", "index.js");
-  const indexJsContent = `
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+  // Delete the entire src folder
+  if (fs.existsSync(projectSrc)) {
+    fs.rmSync(projectSrc, { recursive: true, force: true });
+    console.log(`Deleted directory: ${projectSrc}`);
+  }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <h1>Hello World</h1>
-  </React.StrictMode>
-);
-`;
-  fs.writeFileSync(indexJsPath, indexJsContent.trim());
-  console.log(`Modified: ${indexJsPath}`);
+  // Copy the template src folder to the new project
+  fs.cpSync(templateSrc, projectSrc, { recursive: true });
+  console.log(`Copied ${templateSrc} to ${projectSrc}`);
 
   console.log("\nSimple React app setup complete!");
 

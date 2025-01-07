@@ -34,29 +34,6 @@ module.exports = {
   fs.writeFileSync(tailwindConfigPath, tailwindConfigContent.trim());
   console.log(`Modified: ${tailwindConfigPath}`);
 
-  // Update `index.css`
-  const indexCssPath = path.join(appDirectory, "src", "index.css");
-  const indexCssContent = `
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-html,
-body {
-  background-color: white;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overscroll-behavior-y: none;
-}
-
-#root {
-  min-height: 100%;
-}
-`;
-  fs.writeFileSync(indexCssPath, indexCssContent.trim());
-  console.log(`Modified: ${indexCssPath}`);
-
   // Install Prettier and Tailwind CSS Prettier Plugin
   await executeCommand(
     "npm install -D prettier prettier-plugin-tailwindcss --legacy-peer-deps",
