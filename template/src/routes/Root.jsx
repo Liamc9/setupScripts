@@ -5,14 +5,11 @@ import {
   HomeIcon3,
   SearchIcon2,
   UserIcon3,
-  CogIcon,
-  LoginIcon,
-  ChatIcon,
 } from "liamc9npm";
 import { useNotifications } from "../context/NotificationContext";
 import { getAuth, signOut } from "firebase/auth"; // Import Firebase auth functions
 import { useAuth } from "../context/AuthContext"; // Import AuthContext for currentUser
-import { TopWSideNav, TopNavBar2, BottomNav} from 'liamc9npm';
+import { TopWSideNav, BottomNav} from 'liamc9npm';
 
 
 export default function Root() {
@@ -36,7 +33,7 @@ export default function Root() {
   const topNavHiddenPaths = [
     "/login",
     "/settings/:id",
-    "/settings/manageaccount/:id",
+    "/account/:id",
     "/profile/:id",
   ];
 
@@ -76,15 +73,9 @@ export default function Root() {
       hasNotification: notifications.search,
     },
     {
-      text: "Messages",
-      icon: ChatIcon,
-      path: "/messages",
-      hasNotification: notifications.messages,
-    },
-    {
       text: "Account",
       icon: UserIcon3,
-      path: currentUser ? `/settings/${currentUser.uid}` : "/login", // Dynamic user ID path or login fallback
+      path: currentUser ? `/account/${currentUser.uid}` : "/login", // Dynamic user ID path or login fallback
       hasNotification: notifications.account,
     },
   ];
@@ -95,14 +86,14 @@ export default function Root() {
       {!shouldHideTopNav() && (
         <>
           {/* Mobile Top Navbar */}
-          <div className="md:hidden">
+          <div>
             <TopWSideNav
               appName="MyApp"
               signInColor="#000000"
               navLinks={[
                 { name: "Home", path: "/home", Icon: HomeIcon3 },
-                { name: "Web Development", path: "/webdev", Icon: CogIcon },
-                { name: "Analytics", path: "/analytics", Icon: LoginIcon },
+                { name: "Search", path: "/search", Icon: SearchIcon2 },
+                { name: "Account", path: "/account", Icon: UserIcon3 },
               ]}
               username={currentUser?.displayName || "Guest"}
               profilePic={
@@ -111,25 +102,19 @@ export default function Root() {
               onLogout={handleLogout} // Pass the Firebase logout function
             />
           </div>
-          {/* Desktop Top Navbar */}
-          <div className="hidden md:block">
-            <TopNavBar2
-              menuItems={["Home", "About", "Services", "Contact"]}
-              activeTab="Services"
-            />
-          </div>
+          
         </>
       )}
 
       {/* Bottom Navigation Bar */}
       {!shouldHideBottomNav() && (
         <div className="md:hidden">
-          <BottomNav items={bottomNavItems} />
+          <BottomNav items={bottomNavItems} activeColor="fff"/>
         </div>
       )}
 
       {/* Main Content with Conditional Margin */}
-      <div className={!shouldHideBottomNav() ? "pb-16" : ""}>
+      <div className={!shouldHideBottomNav() ? "pb-16 md:pb-0" : ""}>
         <Outlet />
       </div>
     </div>
