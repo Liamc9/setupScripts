@@ -1,7 +1,10 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
-import { Feed, FeedItem, FilterModal } from 'liamc9npm';
+import { FeedItem } from 'liamc9npm';
+import Feed from '../components/search/Feed';
 import Sort from '../components/search/Sort';
+import Search2 from '../components/search/Search2';
+import FilterDrawer from '../components/search/FilterDrawer';
 
 const sampleItems = [
   { title: 'Task 1', description: 'Do this', status: 'completed', priority: 'high', date: '2023-08-20' },
@@ -61,6 +64,14 @@ const SearchViewContainer = styled.div`
   scrollbar-width: none;
 `;
 
+const ButtonContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 20px;
+`;
+
 const FilterContainer = styled.div`
   width: 100%;
   margin-bottom: 20px;
@@ -82,21 +93,35 @@ const ScrollableFeedContainer = styled.div`
 `;
 
 export const SearchView = () => {
+  const [searchedItems, setSearchedItems] = useState(sampleItems);
   const [selectedFilters, setSelectedFilters] = useState({});
   const [sortedItems, setSortedItems] = useState(sampleItems);
 
   // 1) Create a ref for the scrollable container
   const containerRef = useRef(null);
 
+    // Wrap the onSearch callback to reset filters and sorting when a new search happens
+    const handleSearch = (newSearchResults) => {
+      setSearchedItems(newSearchResults);
+      setSelectedFilters({});           // Reset filters
+      setSortedItems(newSearchResults); // Reset sorting base to the new search results
+    };
+
   return (
     <SearchViewContainer ref={containerRef}>
+            <Search2 
+        items={sampleItems} 
+        onSearch={handleSearch} 
+      />
+      <ButtonContainer>
       <FilterContainer>
-        <FilterModal onChange={setSelectedFilters} />
+        <FilterDrawer onChange={setSelectedFilters} />
       </FilterContainer>
 
       <SortContainer>
-        <Sort items={sampleItems} onSortedChange={setSortedItems} />
+        <Sort         items={searchedItems}  onSortedChange={setSortedItems} />
       </SortContainer>
+      </ButtonContainer>
 
       {/* 2) Wrap the Feed in the scrollable container */}
       <ScrollableFeedContainer >

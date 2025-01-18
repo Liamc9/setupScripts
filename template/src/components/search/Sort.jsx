@@ -4,7 +4,6 @@ import styled from 'styled-components';
 import { SortLogic } from 'liamc9npm';
 
 const SortContainer = styled.div`
-  margin-bottom: 1rem;
 `;
 
 const Select = styled.select`
@@ -16,7 +15,7 @@ const Select = styled.select`
 // Simplified sorting options with labels as values
 const sortingOptions = [
   {
-    label: 'Select sorting',
+    label: 'Sort By',
     comparator: null,
   },
   {
